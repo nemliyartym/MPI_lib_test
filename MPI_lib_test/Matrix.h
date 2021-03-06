@@ -57,8 +57,25 @@ public:
     }
 
     Matrix operator=(const Matrix& cM) {
-        ~Matrix();
-        Matrix(cM.m, cM.n);
+
+        if (n > 0)
+            for (auto i = 0; i < m; i++)
+                delete[] M[i];
+        if (m > 0)
+            delete[] M;
+
+        m = cM.m;
+        n = cM.n;
+        M = new T * [m];
+
+        for (auto i = 0; i < m; i++)
+            M[i] = static_cast<T*>(new T[n]);
+          
+        for (auto i = 0; i < m; i++)
+            for (auto j = 0; j < n; j++)
+                M[i][j] = cM.M[i][j];
+
+        return *this;
     }
 
     ~Matrix() {
