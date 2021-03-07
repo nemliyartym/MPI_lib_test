@@ -46,7 +46,7 @@ public:
             M[i][j] = value;
     }
 
-    void PrintMatrxi() {
+    void PrintMatrix() {
         std::cout << "Matrix:" << std::endl;
         for (auto i = 0; i < m; i++) {
             for (auto j = 0; j < n; j++)
@@ -94,9 +94,9 @@ public:
     }
 
 private:
-    T** M;  //матрица
-    int m; //количество строк
-    int n; //количество стоблцов
+    T** M; 
+    int m; 
+    int n; 
 
 
 };

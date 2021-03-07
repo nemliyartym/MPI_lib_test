@@ -143,8 +143,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Matrix.cpp" />
-    <ClCompile Include="MatrixHandler.cpp" />
     <ClCompile Include="MPI_lib_test.cpp" />
   </ItemGroup>
   <ItemGroup>

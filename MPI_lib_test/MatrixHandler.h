@@ -31,8 +31,8 @@ public:
 		if (m1.getCountRows() != m2.getCountColums()) 
 			return Matrix<int>(0,0);
 	
-		Matrix<int> matrix(m1.getCountColums(), m2.getCountRows());
-
+		matrix = Matrix<int>(m1.getCountColums(), m2.getCountRows());
+		
 		for (auto h = start; h < finish; h++) {
 			for (auto k = 0; k < m2.getCountRows(); k++) {
 				int result = 0;
@@ -43,6 +43,10 @@ public:
 				result = 0;
 			}
 		}
+
+		return matrix;
+	}
+	Matrix<int> getMatrix() { 
 		return matrix;
 	}
 
@@ -57,14 +61,26 @@ public:
 		}
 	}
 
+	const int getStart() {
+		return start;
+	}
+
+	const int getFinish() {
+		return finish;
+	}
+
 	void setMatrices(Matrix<int> matrix1, Matrix<int> matrix2) {
 		m1 = matrix1;
 		m2 = matrix2;
 	}
 
+	
+
 private:
 	Matrix<int>m1;
 	Matrix<int>m2;
+	Matrix<int>matrix;
+
 	HANDLE mut;
 	int start = 0, finish = 0;
 
@@ -72,7 +88,6 @@ private:
 
 		DWORD waitResult;
 		if (waitResult = WaitForSingleObject(mut, INFINITE) == WAIT_OBJECT_0) {
-			//std::cout << "it's work  start=" << start<< " finish=" << finish << std::endl;
 			MatrixMultiplication();
 			ReleaseMutex(mut);
 		}
