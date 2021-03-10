@@ -2,6 +2,7 @@
 
 #include "Matrix.h"
 #include "windows.h"
+#include "time.h"
 #include <iostream>
 
 using namespace std;
