@@ -4,6 +4,7 @@
 #include "Matrix.h"
 #include "MatrixHandler.h"
 
+
 const int rowsM1 = 7;
 const int columsM1 = 3;
 const int rowsM2 = 3;
@@ -14,6 +15,8 @@ Matrix<int> m2(rowsM2, columsM2);
 
 void multiplication_thread(int const  MAX_THREADS = 1) {
     clock_t t_start, t_finish;
+
+
 
     for (int i = 0; i < m1.getCountColums(); i++)
         for (int j = 0; j < m1.getCountRows(); j++)
@@ -62,6 +65,7 @@ void multiplication_mpi(int argc, char* argv[]) {
     clock_t t_start, t_finish;
     MPI_Status status;
 
+
     for (int i = 0; i < m1.getCountColums(); i++)
         for (int j = 0; j < m1.getCountRows(); j++)
             m1.SetElemetMatrix(i, j, i + 1);
@@ -76,7 +80,9 @@ void multiplication_mpi(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &rank_size);
 
+    
     MatrixHandler* mh = NULL;
+    MatrixHandler tmp;
     if (!my_rank) {
         mh = new MatrixHandler[rank_size];
         for (auto i = 0; i < rank_size; i++) {
@@ -88,31 +94,34 @@ void multiplication_mpi(int argc, char* argv[]) {
             mh[i].setMatrices(m1, m2);
             mh[i].setRange(start, finish);
         }
+
     }
+    MPI_Scatter(reinterpret_cast<char*>(mh), sizeof(MatrixHandler), MPI_CHAR,
+                reinterpret_cast<char*>(&tmp), sizeof(MatrixHandler), MPI_CHAR, 0, MPI_COMM_WORLD);
 
-    MatrixHandler tmp;
-    MPI_Scatter(reinterpret_cast<char*>(mh),sizeof(MatrixHandler),MPI_CHAR,
-                reinterpret_cast<char*>(&tmp),sizeof(MatrixHandler),MPI_CHAR,0, MPI_COMM_WORLD);
 
-  
-    Matrix<int> tm = tmp.MatrixMultiplication();
-    cout << "zbs\n";
-
-    Matrix<int> *mm = NULL;
-    if (!my_rank)
-        mm = new Matrix<int>[rank_size];
-    
-    MPI_Gather(reinterpret_cast<char*>(&tm), sizeof(MatrixHandler), MPI_CHAR,
-               reinterpret_cast<char*>(mm), sizeof(MatrixHandler), MPI_CHAR,0,MPI_COMM_WORLD);
-
-    if (!my_rank) {
-        for (auto i = 0; i < rank_size; i++) {
-            if(mm)
-                mm[i].PrintMatrix();
+    Matrix<int>tm = Matrix<int>(m1.getCountColums(), m2.getCountRows());
+    for (auto h = tmp.getStart(); h < tmp.getFinish(); h++) {
+        for (auto k = 0; k < m2.getCountRows(); k++) {
+            int result = 0;
+            for (auto p = 0; p < m2.getCountColums(); p++) {
+                result += m1.GetElementMatrix(h, p) * m2.GetElementMatrix(p, k);
+            }
+            tm.SetElemetMatrix(h, k, result);
         }
     }
+    tmp.setMatrix(tm);
 
-    //Склеиваем матрицы
+
+    Matrix<int>* rcv_mh = NULL;
+    if (!my_rank)
+        rcv_mh = new Matrix<int>[rank_size];
+        
+    MPI_Gather(reinterpret_cast<char*>(&tm), sizeof(Matrix<int>), MPI_CHAR,
+               reinterpret_cast<char*>(rcv_mh), sizeof(Matrix<int>), MPI_CHAR,0,MPI_COMM_WORLD);
+
+    //rcv_mh->PrintMatrix();
+
     if (!my_rank) {
         t_finish = clock();
         printf("Time: %.4f\n", (double)(t_finish - t_start) / CLOCKS_PER_SEC);
@@ -128,6 +137,7 @@ int main(int argc, char* argv[]) {
     //multiplication_thread(4);
 
     //mpiexec -n 4 D:\VsProject\MPI_lib_test\Debug\MPI_lib_test.exe
+    //mpiexec -n 4 D:\work\project\MPI_lib_test\nemliyartym\MPI_lib_test\Debug\MPI_lib_test.exe
     multiplication_mpi(argc, argv);
 
 }
