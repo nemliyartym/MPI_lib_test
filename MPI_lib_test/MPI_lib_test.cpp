@@ -6,11 +6,11 @@
 #include "MatrixHandler.h"
 
 
-const int rowsM1 = 700;
-const int columsM1 = 300;
+const int rowsM1 = 400;
+const int columsM1 = 400;
 
-const int rowsM2 = 300;
-const int columsM2 = 500;
+const int rowsM2 = 400;
+const int columsM2 = 400;
 
 Matrix<int> m1(rowsM1, columsM1);
 Matrix<int> m2(rowsM2, columsM2);
@@ -64,9 +64,11 @@ void multiplication_thread(int const  MAX_THREADS = 1) {
 }
 
 
+
 void multiplication_omp (int count_thread){
     clock_t t_start, t_finish;
     t_start = clock();
+
     for (int i = 0; i < m1.getCountColums(); i++)
         for (int j = 0; j < m1.getCountRows(); j++)
             m1.SetElemetMatrix(i, j, i + 1);
@@ -103,8 +105,9 @@ void multiplication_omp (int count_thread){
 
 void multiplication_mpi(int argc, char* argv[]) {
     int my_rank, rank_size;
+    int rows,colums;
+    rows = colums = 4;
     clock_t t_start, t_finish;
-
 
     t_start = clock();
 
@@ -113,53 +116,46 @@ void multiplication_mpi(int argc, char* argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &rank_size);
 
     int size = rows * colums;
-    
-    int rcv_size = (rows / rank_size) * colums;
-    if (my_rank + 1 == rank_size)
-        rcv_size += (rows % rank_size) * colums;
-
-    int* m1 = new int[rcv_size];
-    int* m2 = new int[rcv_size];
-
-
+    int rcv_size = (size  / rank_size);
+    int* m1 = NULL, *m2 = NULL;
     if (!my_rank) {
-        m1 = new int[rcv_size];
-        m2 = new int[rcv_size];
-        for (auto i = 0; i < rcv_size; i++) {
+        m1 = new int[size];
+        m2 = new int[size];
+        for (auto i = 0; i < size; i++) {
             m1[i] = i + 1;
-            m2[i] = rcv_size - i;
+            m2[i] = size - i;
         }
-        for (auto i = 1; i < rank_size; i++) {
-            MPI_Send(m1, rcv_size, MPI_INT, i, 0, MPI_COMM_WORLD);
+    }
+    int *rcv_m1 = new int[rcv_size];
+    int *rcv_m2 = new int[rcv_size];
+
+    MPI_Scatter(m1, rcv_size, MPI_INT, rcv_m1, rcv_size, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Scatter(m2, rcv_size, MPI_INT, rcv_m2, rcv_size, MPI_INT, 0, MPI_COMM_WORLD);
+        
+    for (auto k = 0; k < rcv_size; k += rcv_size / (rcv_size / rows)) {
+        for (auto i = 0; i < rcv_size; i += rcv_size / (rcv_size / rows)) {
+            int res = 0;
+            for (auto j = 0; j < colums; j++) {
+                res += rcv_m1[j*k] * rcv_m2[i + j];
+            }
+            cout << res << " ";
+            res = 0;
         }
-    } else {
-        MPI_Recv(m1, rcv_size, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-
+        cout << endl;
     }
+        
+
+    if (!my_rank) m1 = new int[size], m2 = new int[size];
+
+    MPI_Gather(rcv_m1, rcv_size, MPI_INT, m1, rcv_size, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(rcv_m2, rcv_size, MPI_INT, m2, rcv_size, MPI_INT, 0, MPI_COMM_WORLD);
     
-    for (auto i = 0; i < rcv_size; i++) {
-        cout << m1[i] <<" ";
-    }
-
-    //int *rcv_m1 = new int[rcv_size];
-    //int* rcv_m2 = new int[rcv_size];
-    
-    //MPI_Scatter(m1, rcv_size, MPI_INT, rcv_m1, rcv_size, MPI_INT, 0, MPI_COMM_WORLD);
-    //MPI_Scatter(m2, rcv_size, MPI_INT, rcv_m2, rcv_size, MPI_INT, 0, MPI_COMM_WORLD);
-
-    //for (auto i = 0; i < rcv_size; i++)
-      //  cout << rcv_m1[i] << " ";
-    //cout << endl;
-    
-    //for (auto i = 0; i < rcv_size; i++)
-      //  cout << rcv_m2[i] << " ";
-
-//    MPI_Gather(reinterpret_cast<char*>(&tm), sizeof(Matrix<int>), MPI_CHAR,
-//               reinterpret_cast<char*>(rcv_mh), sizeof(Matrix<int>), MPI_CHAR,0,MPI_COMM_WORLD);
-
     
 
     if (!my_rank) {
+         
+        //for()
+
         t_finish = clock();
         printf("Time: %.4f\n", (double)(t_finish - t_start) / CLOCKS_PER_SEC);
     }
@@ -173,11 +169,11 @@ int main(int argc, char* argv[]) {
 
     //multiplication_thread(4);
 
-    multiplication_omp(4);
+    //multiplication_omp(4);
 
     //mpiexec -n 4 D:\VsProject\MPI_lib_test\Debug\MPI_lib_test.exe
     //mpiexec -n 4 D:\work\project\MPI_lib_test\nemliyartym\MPI_lib_test\Debug\MPI_lib_test.exe
-    //multiplication_mpi(argc, argv);
+    multiplication_mpi(argc, argv);
 
 }
 
