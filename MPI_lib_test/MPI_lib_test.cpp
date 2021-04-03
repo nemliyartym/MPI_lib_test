@@ -1,9 +1,19 @@
 ﻿#pragma once
 
 #include "mpi.h"
+#include "omp.h"
 #include "Matrix.h"
 #include "MatrixHandler.h"
 
+
+const int rowsM1 = 700;
+const int columsM1 = 300;
+
+const int rowsM2 = 300;
+const int columsM2 = 500;
+
+Matrix<int> m1(rowsM1, columsM1);
+Matrix<int> m2(rowsM2, columsM2);
 
 void multiplication_thread(int const  MAX_THREADS = 1) {
     clock_t t_start, t_finish;
@@ -53,14 +63,47 @@ void multiplication_thread(int const  MAX_THREADS = 1) {
     
 }
 
+
+void multiplication_omp (int count_thread){
+    clock_t t_start, t_finish;
+    t_start = clock();
+    for (int i = 0; i < m1.getCountColums(); i++)
+        for (int j = 0; j < m1.getCountRows(); j++)
+            m1.SetElemetMatrix(i, j, i + 1);
+
+    for (int i = 0; i < m2.getCountColums(); i++)
+        for (int j = 0; j < m2.getCountRows(); j++)
+            m2.SetElemetMatrix(i, j, i + 1);
+
+
+    omp_set_num_threads(count_thread);
+    
+   
+    Matrix<int> matrix(m1.getCountColums(), m2.getCountRows());
+
+#pragma omp parallel for
+    for (auto h = 0; h < m1.getCountColums(); h++) {
+        for (auto k = 0; k < m2.getCountRows(); k++) {
+            int result = 0;
+            for (auto p = 0; p < m2.getCountColums(); p++) {
+                result += m1.GetElementMatrix(h, p) * m2.GetElementMatrix(p, k);
+            }
+            matrix.SetElemetMatrix(h, k, result);
+            result = 0;
+        }
+    }
+    
+
+    t_finish = clock();
+
+    printf("Time: %.4f\n", (double)(t_finish - t_start) / CLOCKS_PER_SEC);
+
+}
+
+
 void multiplication_mpi(int argc, char* argv[]) {
     int my_rank, rank_size;
-    MPI_Status status;
-    MPI_Request req;
     clock_t t_start, t_finish;
-
-    const int rows = 9;
-    const int colums = 9;
 
 
     t_start = clock();
@@ -130,9 +173,11 @@ int main(int argc, char* argv[]) {
 
     //multiplication_thread(4);
 
+    multiplication_omp(4);
+
     //mpiexec -n 4 D:\VsProject\MPI_lib_test\Debug\MPI_lib_test.exe
     //mpiexec -n 4 D:\work\project\MPI_lib_test\nemliyartym\MPI_lib_test\Debug\MPI_lib_test.exe
-    multiplication_mpi(argc, argv);
+    //multiplication_mpi(argc, argv);
 
 }
 
